@@ -217,7 +217,7 @@ public class EnemyFSM : MonoBehaviour
     
     #region 状态转换和行为
     
-    private void ChangeState(EnemyState newState)
+    public void ChangeState(EnemyState newState)
     {
         // 退出当前状态
         ExitState(currentState);
