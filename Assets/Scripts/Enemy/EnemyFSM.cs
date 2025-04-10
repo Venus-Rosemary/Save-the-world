@@ -122,8 +122,15 @@ public class EnemyFSM : MonoBehaviour
         }
     }
 
+    private float Vector2Distance(Vector3 a, Vector3 b)
+    {
+        float dx = a.x - b.x;
+        float dz = a.z - b.z;
+        return Mathf.Sqrt(dx * dx + dz * dz);
+    }
+
     #region 状态更新方法
-    
+
     private void UpdateIdleState()//待机状态->巡逻状态
     {
         stateTimer -= Time.deltaTime;
@@ -163,7 +170,7 @@ public class EnemyFSM : MonoBehaviour
         transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
 
         // 检查是否进入攻击范围
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        float distanceToPlayer = Vector2Distance(transform.position, player.position);
 
         if (distanceToPlayer > attackRange)
         {
@@ -192,7 +199,7 @@ public class EnemyFSM : MonoBehaviour
             // 攻击结束后，根据与玩家的距离决定下一个状态
             if (player != null)
             {
-                float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+                float distanceToPlayer = Vector2Distance(transform.position, player.position);
                 if (distanceToPlayer <= detectionRange)
                 {
                     if (distanceToPlayer<= attackRange && canAttack)
@@ -215,11 +222,11 @@ public class EnemyFSM : MonoBehaviour
             }
         }
     }
-    
+
     #endregion
-    
+
     #region 状态转换和行为
-    
+
     public void ChangeState(EnemyState newState)
     {
         // 退出当前状态
@@ -324,7 +331,7 @@ public class EnemyFSM : MonoBehaviour
     {
         if (player == null) return;
         
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        float distanceToPlayer = Vector2Distance(transform.position, player.position);
         
         // 如果玩家在检测范围内，切换到追踪状态
         if (distanceToPlayer <= detectionRange && currentState != EnemyState.Chase && currentState != EnemyState.Attack)
@@ -345,7 +352,7 @@ public class EnemyFSM : MonoBehaviour
             transform.forward = directionToPlayer.normalized;
             
             // 检测玩家是否在攻击范围内
-            if (Vector3.Distance(transform.position, player.position) <= attackRange)
+            if (Vector2Distance(transform.position, player.position) <= attackRange)
             {
                 // 对玩家造成伤害
                 Health playerHealth = player.GetComponent<Health>();
@@ -396,7 +403,7 @@ public class EnemyFSM : MonoBehaviour
         // 如果生命值大于0，恢复到追踪状态或巡逻状态
         if (health.GetCurrentHealth() > 0)
         {
-            if (player != null && Vector3.Distance(transform.position, player.position) <= detectionRange)
+            if (player != null && Vector2Distance(transform.position, player.position) <= detectionRange)
             {
                 ChangeState(EnemyState.Chase);
             }
@@ -411,12 +418,17 @@ public class EnemyFSM : MonoBehaviour
     {
         // 切换到死亡状态
         ChangeState(EnemyState.Die);
-        
+
+        if (enemyRenderer != null && hitMaterial != null)
+        {
+            enemyRenderer.material = hitMaterial;
+        }
+
         // 禁用碰撞器
         Collider enemyCollider = GetComponent<Collider>();
         if (enemyCollider != null)
         {
-            enemyCollider.enabled = false;
+            //enemyCollider.enabled = false;
         }
         
         // 可以在这里添加死亡动画或粒子效果
@@ -433,11 +445,13 @@ public class EnemyFSM : MonoBehaviour
     {
         // 绘制检测范围
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRange);
+        Vector3 detectR = new Vector3(transform.position.x, 0.5f, transform.position.z);
+        Gizmos.DrawWireSphere(detectR, detectionRange);
         
         // 绘制攻击范围
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
+        Vector3 attackR = new Vector3(transform.position.x, 0.5f, transform.position.z);
+        Gizmos.DrawWireSphere(attackR, attackRange);
         
         // 绘制移动边界
         Gizmos.color = Color.blue;

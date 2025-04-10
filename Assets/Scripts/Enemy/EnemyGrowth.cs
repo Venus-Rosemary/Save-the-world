@@ -167,12 +167,18 @@ public class EnemyGrowth : MonoBehaviour
         }
     }
 
-    public void SetFindAFP(List<Transform> transforms)//设置最终形态用要去的点的列表
+    // 添加到EnemyGrowth.cs中
+    
+    // 设置最终位置列表
+    public void SetFindAFP(List<Transform> positions)
     {
-        for (int i = 0; i < transforms.Count; i++)
-        {
-            finalPositions[i] = transforms[i];
-        }
+        finalPositions = positions;
+    }
+    
+    // 检查是否处于最终位置
+    public bool IsInFinalPosition()
+    {
+        return isEndPos;
     }
 
     private void FindAvailableFinalPosition()

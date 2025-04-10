@@ -33,17 +33,17 @@ public class PlayerController : MonoBehaviour
     private float jumpStartTime;
     private bool isInvincible = false; // 是否处于无敌状态
     private Health playerHealth; // 玩家的Health组件
-    private Renderer playerRenderer; // 玩家的渲染器
+    private Outline playerOutLine; // 玩家的渲染器
     private Color originalColor; // 原始颜色
 
     private void Awake()
     {
         playerHealth = GetComponent<Health>();
-        playerRenderer = GetComponentInChildren<Renderer>();
+        playerOutLine = GetComponent<Outline>();
         
-        if (playerRenderer != null)
+        if (playerOutLine != null)
         {
-            originalColor = playerRenderer.material.color;
+            playerOutLine.enabled = false;
         }
         
         // 注册受伤事件
@@ -66,7 +66,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // 无敌状态协程
+    // 无敌状态协程(后面可以换成屏幕闪红？)
     private IEnumerator InvincibleState()
     {
         isInvincible = true;
@@ -78,7 +78,7 @@ public class PlayerController : MonoBehaviour
         }
         
         // 闪烁效果
-        if (playerRenderer != null)
+        if (playerOutLine != null)
         {
             float endTime = Time.time + invincibleDuration;
             bool visible = false;
@@ -86,12 +86,13 @@ public class PlayerController : MonoBehaviour
             while (Time.time < endTime)
             {
                 visible = !visible;
-                playerRenderer.material.color = visible ? originalColor : invincibleColor;
+
+                playerOutLine.enabled = visible ? false : true;
                 yield return new WaitForSeconds(blinkInterval);
             }
-            
+
             // 恢复原始颜色
-            playerRenderer.material.color = originalColor;
+            playerOutLine.enabled = false;
         }
         else
         {
