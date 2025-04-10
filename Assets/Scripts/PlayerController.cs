@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using DG.Tweening;
 
 public class PlayerController : MonoBehaviour
 {
@@ -21,10 +22,91 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float jumpDuration = 0.5f;
     [SerializeField] private AnimationCurve jumpCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
 
+    [Header("无敌帧设置")]
+    [SerializeField] private float invincibleDuration = 1f; // 无敌时间
+    [SerializeField] private float blinkInterval = 0.1f; // 闪烁间隔
+    [SerializeField] private Color invincibleColor = new Color(1f, 1f, 1f, 0.5f); // 无敌时的颜色
+
     private bool canAttack = true;
     private bool isJumping = false;
     private Vector3 originalPosition;
     private float jumpStartTime;
+    private bool isInvincible = false; // 是否处于无敌状态
+    private Health playerHealth; // 玩家的Health组件
+    private Renderer playerRenderer; // 玩家的渲染器
+    private Color originalColor; // 原始颜色
+
+    private void Awake()
+    {
+        playerHealth = GetComponent<Health>();
+        playerRenderer = GetComponentInChildren<Renderer>();
+        
+        if (playerRenderer != null)
+        {
+            originalColor = playerRenderer.material.color;
+        }
+        
+        // 注册受伤事件
+        if (playerHealth != null)
+        {
+            playerHealth.onDamaged.AddListener(OnPlayerDamaged);
+        }
+        else
+        {
+            Debug.LogWarning("未找到Health组件，无敌帧功能可能无法正常工作");
+        }
+    }
+
+    // 当玩家受伤时调用
+    private void OnPlayerDamaged()
+    {
+        if (!isInvincible)
+        {
+            StartCoroutine(InvincibleState());
+        }
+    }
+
+    // 无敌状态协程
+    private IEnumerator InvincibleState()
+    {
+        isInvincible = true;
+        
+        // 设置玩家为无敌状态
+        if (playerHealth != null)
+        {
+            playerHealth.SetInvincible(true);
+        }
+        
+        // 闪烁效果
+        if (playerRenderer != null)
+        {
+            float endTime = Time.time + invincibleDuration;
+            bool visible = false;
+            
+            while (Time.time < endTime)
+            {
+                visible = !visible;
+                playerRenderer.material.color = visible ? originalColor : invincibleColor;
+                yield return new WaitForSeconds(blinkInterval);
+            }
+            
+            // 恢复原始颜色
+            playerRenderer.material.color = originalColor;
+        }
+        else
+        {
+            // 如果没有渲染器，只等待无敌时间
+            yield return new WaitForSeconds(invincibleDuration);
+        }
+        
+        // 取消无敌状态
+        if (playerHealth != null)
+        {
+            playerHealth.SetInvincible(false);
+        }
+        
+        isInvincible = false;
+    }
 
     private void Update()
     {
@@ -90,7 +172,7 @@ public class PlayerController : MonoBehaviour
             {
                 enemyHealth.TakeDamage(attackDamage);
             }
-            
+            //Camera.main.transform.DOShakePosition(0.3f, 0.6f);//摄像机晃动
             Debug.Log("攻击命中: " + enemy.name);
         }
     }

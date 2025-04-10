@@ -8,6 +8,9 @@ public class Health : MonoBehaviour
 
     public UnityEvent onDeath;
     public UnityEvent<int, int> onHealthChanged; // 参数：当前生命值，最大生命值
+    public UnityEvent onDamaged; // 新增：受伤事件
+
+    private bool isInvincible = false; // 是否处于无敌状态
 
     private void Awake()
     {
@@ -16,10 +19,17 @@ public class Health : MonoBehaviour
 
     public void TakeDamage(int damage)
     {
+        // 如果处于无敌状态，不受伤害
+        if (isInvincible)
+            return;
+
         currentHealth -= damage;
         
         // 触发生命值变化事件
         onHealthChanged?.Invoke(currentHealth, maxHealth);
+        
+        // 触发受伤事件
+        onDamaged?.Invoke();
 
         // 如果是敌人，通知状态机进入受击状态
         EnemyFSM enemyFSM = GetComponent<EnemyFSM>();
@@ -32,6 +42,12 @@ public class Health : MonoBehaviour
         {
             Die();
         }
+    }
+
+    // 设置无敌状态
+    public void SetInvincible(bool invincible)
+    {
+        isInvincible = invincible;
     }
 
     private void Die()
@@ -55,5 +71,16 @@ public class Health : MonoBehaviour
     public int GetCurrentHealth()
     {
         return currentHealth;
+    }
+
+    // 添加设置最大生命值的方法
+    public void SetMaxHealth(int newMaxHealth)
+    {
+        maxHealth = newMaxHealth;
+
+        currentHealth = maxHealth;
+
+        // 触发生命值变化事件
+        onHealthChanged?.Invoke(currentHealth, maxHealth);
     }
 }

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using DG.Tweening;
 
 public class GameManage : MonoBehaviour
 {
@@ -12,6 +13,9 @@ public class GameManage : MonoBehaviour
 
     [SerializeField] private Vector2 CreatBoundaryMin = new Vector2(-20f, -20f);
     [SerializeField] private Vector2 CreatBoundaryMax = new Vector2(20f, 20f);
+
+    [Header("◊Ó÷’–ŒÃ¨…Ë÷√")]
+    public List<Transform> finalPos = new List<Transform>();
     void Start()
     {
         OneCreat();
@@ -19,6 +23,11 @@ public class GameManage : MonoBehaviour
 
     // Update is called once per frame
     void Update()
+    {
+        
+    }
+
+    private void OnEnable()
     {
         
     }
@@ -34,6 +43,8 @@ public class GameManage : MonoBehaviour
         float RangePosZ = Random.Range(CreatBoundaryMin.y, CreatBoundaryMax.y);
         Vector3 RangePos = new Vector3(RangePosX, 1.5F, RangePosZ);
         BlackHole = Instantiate(BlackHolePrefabVFX, RangePos, Quaternion.identity);
+        //BlackHole.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
+        BlackHole.transform.DOScale(0.3f, 1).From();
         StartCoroutine(CreatEnemy());
     }
 
@@ -41,6 +52,8 @@ public class GameManage : MonoBehaviour
     {
         Enemy = Instantiate(EnemyPrefab, BlackHole.transform.position, Quaternion.identity);
         Enemy.GetComponent<EnemyFSM>().ChangeState(EnemyState.Patrol);
+        EnemyGrowth enemyGrowth = Enemy.GetComponent<EnemyGrowth>();
+        enemyGrowth.SetFindAFP(finalPos);
         AllCanAttackEnemy.Add(Enemy);
     }
 
@@ -52,7 +65,11 @@ public class GameManage : MonoBehaviour
             yield return new WaitForSeconds(3);
             TwoCreat();
         }
+        yield return new WaitForSeconds(2);
 
+        BlackHole.transform.DOScale(0.3f, 1);
+        yield return new WaitForSeconds(1);
+        Destroy(BlackHole);
     }
 
     private void OnDrawGizmos()

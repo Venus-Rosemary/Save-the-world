@@ -67,6 +67,9 @@ public class EnemyFSM : MonoBehaviour
         }
         
         startPosition = transform.position;
+
+        // 初始化状态
+        ChangeState(EnemyState.Idle);
     }
 
     private void Start()
@@ -77,8 +80,7 @@ public class EnemyFSM : MonoBehaviour
         // 注册受击和死亡事件
         health.onDeath.AddListener(OnDeath);
         
-        // 初始化状态
-        ChangeState(EnemyState.Idle);
+
     }
 
     private void Update()
@@ -141,6 +143,7 @@ public class EnemyFSM : MonoBehaviour
         // 检查是否到达目标距离或超出边界
         if (distanceTraveled >= patrolDistance || IsOutOfBounds())
         {
+            Debug.Log($"{distanceTraveled >= patrolDistance}   {IsOutOfBounds()}");
             // 重新选择一个方向和距离
             ChangeState(EnemyState.Idle);
         }
@@ -252,6 +255,9 @@ public class EnemyFSM : MonoBehaviour
                 // 选择一个随机距离
                 patrolDistance = Random.Range(minPatrolDistance, maxPatrolDistance);
                 distanceTraveled = 0f;
+
+                Debug.Log($"随机距离：{patrolDistance}  走过距离：{distanceTraveled}");
+
                 break;
                 
             case EnemyState.Chase:
