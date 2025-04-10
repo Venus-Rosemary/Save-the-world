@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 7204342631597525106}
   - component: {fileID: 228799554219272105}
   - component: {fileID: 228799554219272104}
+  - component: {fileID: 6458862223735363824}
   m_Layer: 9
   m_Name: Enemy
   m_TagString: Untagged
@@ -187,6 +188,7 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   moveSpeed: 5
+  outL: {fileID: 6458862223735363824}
 --- !u!54 &228799554219272104
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -203,3 +205,21 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 80
   m_CollisionDetection: 0
+--- !u!114 &6458862223735363824
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7204342631597525068}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5fea29bb7c508c244a1f805a5fd3fc4d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  outlineMode: 0
+  outlineColor: {r: 1, g: 1, b: 0, a: 1}
+  outlineWidth: 2
+  precomputeOutline: 0
+  bakeKeys: []
+  bakeValues: []

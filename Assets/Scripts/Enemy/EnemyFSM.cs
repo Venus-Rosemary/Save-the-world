@@ -150,7 +150,7 @@ public class EnemyFSM : MonoBehaviour
         // 检查是否到达目标距离或超出边界
         if (distanceTraveled >= patrolDistance || IsOutOfBounds())
         {
-            Debug.Log($"{distanceTraveled >= patrolDistance}   {IsOutOfBounds()}");
+            //Debug.Log($"{distanceTraveled >= patrolDistance}   {IsOutOfBounds()}");
             // 重新选择一个方向和距离
             ChangeState(EnemyState.Idle);
         }
@@ -263,7 +263,6 @@ public class EnemyFSM : MonoBehaviour
                 patrolDistance = Random.Range(minPatrolDistance, maxPatrolDistance);
                 distanceTraveled = 0f;
 
-                Debug.Log($"随机距离：{patrolDistance}  走过距离：{distanceTraveled}");
 
                 break;
                 
@@ -423,6 +422,8 @@ public class EnemyFSM : MonoBehaviour
         {
             enemyRenderer.material = hitMaterial;
         }
+
+        gameObject.layer = LayerMask.NameToLayer("Default");
 
         // 禁用碰撞器
         Collider enemyCollider = GetComponent<Collider>();

@@ -34,6 +34,7 @@ public class GameManage : Singleton<GameManage>
 
     [Header("UI面板")]
     public TMP_Text timeUI;
+    public TMP_Text scoreUI;
 
     // 私有变量
     private GameObject currentBlackHole;
@@ -85,6 +86,7 @@ public class GameManage : Singleton<GameManage>
 
         onGameStart.AddListener(SetGameStartEvent);
         onTimeChanged.AddListener(SetonTimeChangedEvent);
+        onScoreChanged.AddListener(SetonScoreChanged);
     }
 
     private void OnDisable()
@@ -156,6 +158,12 @@ public class GameManage : Singleton<GameManage>
     }
     #endregion
 
+    #region 设置分数改变事件
+    private void SetonScoreChanged(int a)
+    {
+        scoreUI.text = $"Target Score: {a}/{scoreToWin}";
+    }
+    #endregion
 
     // 生成黑洞
     private void SpawnBlackHole()
@@ -213,9 +221,19 @@ public class GameManage : Singleton<GameManage>
             // 随机选择敌人类型
             int enemyTypeIndex = Random.Range(0, EnemyPrefabs.Length);
             GameObject enemyPrefab = EnemyPrefabs[enemyTypeIndex];
-            
+
+            Vector3 newPos=Vector3.zero;
+
             // 生成敌人
-            GameObject enemy = Instantiate(enemyPrefab, currentBlackHole.transform.position, Quaternion.identity);
+            if (enemyTypeIndex==0)
+            {
+                newPos = currentBlackHole.transform.position;
+            }
+            else if (enemyTypeIndex==1)
+            {
+                newPos = new Vector3(currentBlackHole.transform.position.x, currentBlackHole.transform.position.y + 2.5f, currentBlackHole.transform.position.z);//高度看情况调整
+            }
+            GameObject enemy = Instantiate(enemyPrefab, newPos, Quaternion.identity);
             enemy.GetComponent<EnemyFSM>()?.ChangeState(EnemyState.Patrol);
             
             // 设置最终位置

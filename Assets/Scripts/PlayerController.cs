@@ -4,6 +4,9 @@ using DG.Tweening;
 
 public class PlayerController : MonoBehaviour
 {
+    [Header("控制设置")]
+    [SerializeField] private bool canControl = true; // 控制玩家是否可以操作角色
+    
     [Header("移动设置")]
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private Vector2 moveBoundaryMin = new Vector2(-10f, -10f);
@@ -19,8 +22,8 @@ public class PlayerController : MonoBehaviour
 
     [Header("跳跃设置")]
     [SerializeField] private float jumpHeight = 2f;
-    [SerializeField] private float jumpDuration = 0.5f;
-    [SerializeField] private AnimationCurve jumpCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
+    [SerializeField] private float playerGravity = 20f; // 玩家重力
+    private float verticalVelocity = 0f; // 垂直速度
 
     [Header("无敌帧设置")]
     [SerializeField] private float invincibleDuration = 1f; // 无敌时间
@@ -40,7 +43,7 @@ public class PlayerController : MonoBehaviour
     {
         playerHealth = GetComponent<Health>();
         playerOutLine = GetComponent<Outline>();
-        
+
         if (playerOutLine != null)
         {
             playerOutLine.enabled = false;
@@ -111,6 +114,9 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        // 如果不能控制，直接返回
+        if (!canControl) return;
+
         // 处理移动
         HandleMovement();
 
@@ -174,7 +180,6 @@ public class PlayerController : MonoBehaviour
                 enemyHealth.TakeDamage(attackDamage);
             }
             //Camera.main.transform.DOShakePosition(0.3f, 0.6f);//摄像机晃动
-            Debug.Log("攻击命中: " + enemy.name);
         }
     }
 
@@ -189,24 +194,28 @@ public class PlayerController : MonoBehaviour
     {
         isJumping = true;
         originalPosition = transform.position;
-        jumpStartTime = Time.time;
+        
+        // 使用物理公式计算初始向上速度
+        verticalVelocity = Mathf.Sqrt(jumpHeight * 2 * playerGravity);
     }
 
     private void UpdateJump()
     {
-        float jumpProgress = (Time.time - jumpStartTime) / jumpDuration;
+        // 应用重力
+        verticalVelocity -= playerGravity * Time.deltaTime;
         
-        if (jumpProgress >= 1f)
-        {
-            // 跳跃结束
-            isJumping = false;
-            return;
-        }
-
-        // 使用动画曲线计算当前高度
-        float heightFactor = jumpCurve.Evaluate(jumpProgress);
+        // 更新位置
         Vector3 currentPosition = transform.position;
-        currentPosition.y = originalPosition.y + (jumpHeight * heightFactor);
+        currentPosition.y += verticalVelocity * Time.deltaTime;
+        
+        // 检查是否落回地面
+        if (currentPosition.y <= originalPosition.y)
+        {
+            currentPosition.y = originalPosition.y;
+            isJumping = false;
+            verticalVelocity = 0f;
+        }
+        
         transform.position = currentPosition;
     }
 
@@ -232,5 +241,28 @@ public class PlayerController : MonoBehaviour
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(attackPoint.position, attackRange);
         }
+    }
+    
+    // 公开方法：设置玩家是否可以控制
+    public void SetCanControl(bool value)
+    {
+        canControl = value;
+        
+        // 如果禁用控制，可能需要停止当前动作
+        if (!canControl)
+        {
+            // 停止跳跃
+            isJumping = false;
+            
+            // 停止攻击冷却
+            StopCoroutine(nameof(AttackCooldown));
+            canAttack = true;
+        }
+    }
+    
+    // 公开方法：获取当前控制状态
+    public bool GetCanControl()
+    {
+        return canControl;
     }
 }
