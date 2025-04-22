@@ -16,7 +16,7 @@ public class PlayerController : MonoBehaviour
     [Header("攻击设置")]
     [SerializeField] private float attackCooldown = 0.5f;
     [SerializeField] private Transform attackPoint;
-    [SerializeField] private float attackRange = 1f;
+    [SerializeField] Vector3 attackExtents = new Vector3(2, 2, 2); // 大小
     [SerializeField] private LayerMask enemyLayers;
     [SerializeField] private int attackDamage = 10;
 
@@ -168,7 +168,8 @@ public class PlayerController : MonoBehaviour
         // animator.SetTrigger("Attack");
 
         // 检测攻击范围内的敌人
-        Collider[] hitEnemies = Physics.OverlapSphere(attackPoint.position, attackRange, enemyLayers);
+        //Collider[] hitEnemies = Physics.OverlapSphere
+        Collider[] hitEnemies = Physics.OverlapBox(attackPoint.position, attackExtents, Quaternion.identity, enemyLayers);
 
         // 对每个敌人造成伤害
         foreach (Collider enemy in hitEnemies)
@@ -179,7 +180,6 @@ public class PlayerController : MonoBehaviour
             {
                 enemyHealth.TakeDamage(attackDamage);
             }
-            //Camera.main.transform.DOShakePosition(0.3f, 0.6f);//摄像机晃动
         }
     }
 
@@ -239,7 +239,7 @@ public class PlayerController : MonoBehaviour
         if (attackPoint != null)
         {
             Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(attackPoint.position, attackRange);
+            Gizmos.DrawWireCube(attackPoint.position, attackExtents*2);
         }
     }
     
@@ -252,7 +252,7 @@ public class PlayerController : MonoBehaviour
         if (!canControl)
         {
             // 停止跳跃
-            isJumping = false;
+            //isJumping = false;
             
             // 停止攻击冷却
             StopCoroutine(nameof(AttackCooldown));

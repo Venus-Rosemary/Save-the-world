@@ -11,16 +11,16 @@ public class EnemyGrowth : MonoBehaviour
         public float scale;//缩放尺寸
         public int health;//对应形态血量
         public Vector2 duration; // x: 最小持续时间, y: 最大持续时间
+        public float attackRangeToModel;//对应模型的攻击距离
+        public GameObject model; // 对应阶段的模型
+        public RuntimeAnimatorController animatorController; // 动画控制器
+        public Avatar avatar; // 模型Avatar
     }
 
     [Header("成长阶段设置")]
-    [SerializeField] private List<GrowthStage> growthStages = new List<GrowthStage>
-    {
-        new GrowthStage { scale = 0.3f, health = 10, duration = new Vector2(10f, 15f) },
-        new GrowthStage { scale = 0.6f, health = 20, duration = new Vector2(20f, 25f) },
-        new GrowthStage { scale = 1f, health = 40, duration = new Vector2(20f, 25f) },
-        new GrowthStage { scale = 2f, health = 100, duration = new Vector2(0f, 0f) }
-    };
+    [SerializeField] private List<GrowthStage> growthStages = new List<GrowthStage>();
+    private Animator animator;
+    private GameObject currentModel;
 
     [Header("最终形态设置")]
     [SerializeField] private List<Transform> finalPositions = new List<Transform>();//最终形态移动到的位置------5个
@@ -41,11 +41,16 @@ public class EnemyGrowth : MonoBehaviour
         //获取组件和缩放
         healthComponent = GetComponent<Health>();
         enemyFSM = GetComponent<EnemyFSM>();
+        animator = GetComponent<Animator>();
         originalScale = transform.localScale;//new Vector3(1,1,1)
     }
 
     private void Start()
     {
+        foreach (var stage in growthStages)
+        {
+            stage.model.SetActive(false);
+        }
         // 设置初始阶段
         SetGrowthStage(0);
         
@@ -111,38 +116,66 @@ public class EnemyGrowth : MonoBehaviour
     {
         if (stageIndex < 0 || stageIndex >= growthStages.Count)
             return;
-            
+
         currentStage = stageIndex;
         GrowthStage stage = growthStages[currentStage];
 
-        if (stageIndex==0)
+        // 切换模型
+        if (currentModel != null)
         {
-            // 设置缩放
+            currentModel.SetActive(false);
+        }
+        currentModel = stage.model;
+        if (currentModel != null)
+        {
+            currentModel.SetActive(true);
+        }
+        if (enemyFSM!=null)
+        {
+            enemyFSM.SetAttackRangeToModel(stage.attackRangeToModel);
+        }
+
+        // 切换动画控制器和Avatar
+        if (animator != null && stage.animatorController != null)
+        {
+            animator.runtimeAnimatorController = stage.animatorController;
+            animator.avatar = stage.avatar;
+
+            animator.Play("Idle");
+        }
+
+        if (stageIndex == 0)
+        {
             transform.localScale = originalScale * stage.scale;
         }
         else
         {
             transform.DOScale(originalScale * stage.scale, 1f);
 
-            outL.enabled = true; // 激活对象
-            DOVirtual.DelayedCall(1, () => outL.enabled = false); // 延迟关闭
+            if (stageIndex == 2)
+            {
+                GameManage.Instance.NPCEventTrigger(7);
+            }
+
+            outL.enabled = true;
+            DOVirtual.DelayedCall(1, () => outL.enabled = false);
         }
 
-
-        // 设置血量
         if (healthComponent != null)
         {
             healthComponent.SetMaxHealth(stage.health);
         }
-        
-        Debug.Log($"{gameObject.name} 进入成长阶段 {currentStage + 1}，缩放: {stage.scale}，血量: {stage.health}");
     }
 
     private void EnterFinalStage()
     {
+        GameManage.Instance.NPCEventTrigger(8);
+
         // 禁用敌人状态机
         if (enemyFSM != null)
         {
+            enemyFSM.ChangeState(EnemyState.Idle);
+            enemyFSM.Restorematerial();
             enemyFSM.enabled = false;
             Destroy(enemyFSM);
         }
@@ -154,7 +187,9 @@ public class EnemyGrowth : MonoBehaviour
         
         // 查找可用的最终位置
         FindAvailableFinalPosition();
-        
+
+        GameManage.Instance.OnOtherScriptUse(gameObject);
+
         // 如果找到了可用位置，开始移动
         if (targetPosition != null)
         {

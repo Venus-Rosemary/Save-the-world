@@ -12,13 +12,17 @@ public class Health : MonoBehaviour
 
     private bool isInvincible = false; // 是否处于无敌状态
 
+    public string lastDamageSource { get; private set; } = ""; // 记录最后一次伤害来源
+
     private void Awake()
     {
         currentHealth = maxHealth;
     }
 
-    public void TakeDamage(int damage)
+    public void TakeDamage(int damage, string source = "")
     {
+        lastDamageSource = source;
+
         // 如果处于无敌状态，不受伤害
         if (isInvincible)
             return;
@@ -56,7 +60,7 @@ public class Health : MonoBehaviour
         onDeath?.Invoke();
         
         // 可以在这里添加死亡逻辑，比如播放死亡动画、销毁对象等
-        Debug.Log(gameObject.name + " 已死亡");
+        //Debug.Log(gameObject.name + " 已死亡");
     }
 
     public void Heal(int amount)

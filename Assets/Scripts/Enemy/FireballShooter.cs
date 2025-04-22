@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using DG.Tweening;
+using static UnityEngine.GraphicsBuffer;
 
 public class FireballShooter : MonoBehaviour
 {
@@ -14,16 +16,30 @@ public class FireballShooter : MonoBehaviour
     [SerializeField] private Transform firePoint; // 发射点
     [SerializeField] private float fireballSpeed = 10f; // 火球速度
     [SerializeField] private int fireballDamage = 20; // 火球伤害
-    
+
     [Header("预制体")]
     [SerializeField] private GameObject fireballPrefab; // 火球预制体
     [SerializeField] private GameObject groundVFXPrefab; // 地面效果预制体
-    
+    [SerializeField] private GameObject fireHitPlayerVFX;//火球击中玩家特效
+    [SerializeField] private GameObject fireHitGroundVFX;//火球击中地面特效
+
     [Header("地面效果设置")]
     [SerializeField] private float minGroundVFXScale = 0.3f; // 最小地面效果缩放
     [SerializeField] private float maxGroundVFXScale = 2f; // 最大地面效果缩放
     [SerializeField] private LayerMask groundLayer; // 地面层
-    
+
+    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private float arrivalDistance = 0.1f;
+
+    [Header("动画设置")]
+    [SerializeField] private Animator animator;
+    private bool isRun = true;
+
+
+    private Transform targetPosition;
+    private bool hasArrived = false;
+
+
     private float nextFireTime;
     
     private void Start()
@@ -50,21 +66,46 @@ public class FireballShooter : MonoBehaviour
         // 设置第一次发射时间
         SetNextFireTime();
     }
-    
+
+    //设置移动目标点
+    public void SetTargetPosition(Transform target)
+    {
+        targetPosition = target;
+    }
+
     private void Update()
     {
-        // 始终面向玩家
-        LookAtTarget();
-        
         // 检查是否到达发射时间
         if (Time.time >= nextFireTime)
         {
             FireAtTarget();
             SetNextFireTime();
         }
+
+
+        if (targetPosition != null && !hasArrived)
+        {
+            // 移动向目标位置
+            if (isRun)
+            {
+                animator.Play("Run");
+                isRun= false;
+            }
+            Vector3 direction = (targetPosition.position - transform.position).normalized;
+            transform.position += direction * moveSpeed * Time.deltaTime;
+            transform.LookAt(targetPosition);
+        }
+        // 检查是否到达目标位置
+        if (Vector3.Distance(transform.position, targetPosition.position) < arrivalDistance)
+        {
+            transform.position = targetPosition.position;
+            hasArrived = true;
+            LookAtTarget();
+        }
+
     }
     
-    private void LookAtTarget()
+    private void LookAtTarget()// 始终面向玩家
     {
         if (target != null)
         {
@@ -74,17 +115,22 @@ public class FireballShooter : MonoBehaviour
         }
     }
     
-    private void FireAtTarget()
+    private void FireAtTarget()//向目标位置发射火球
     {
         if (target == null || fireballPrefab == null) return;
+
+        //npc警示
+        GameManage.Instance.NPCEventTrigger(5);
 
         Vector3 PlayerXZ = new Vector3(target.position.x, target.position.y - (PlayerHight / 2), target.position.z);
         // 计算发射方向
         Vector3 fireDirection = (PlayerXZ - firePoint.position).normalized;
-        
+        animator.Play("Attack");
         // 创建火球
         GameObject fireball = Instantiate(fireballPrefab, firePoint.position, Quaternion.identity);
         
+        GameManage.Instance.OnAddEnemyObjects(fireball);
+
         // 计算火球射线与地面的交点
         Ray ray = new Ray(firePoint.position, fireDirection);
         RaycastHit hit;
@@ -97,6 +143,7 @@ public class FireballShooter : MonoBehaviour
         else
         {
             // 如果没有检测到地面，直接销毁火球
+            GameManage.Instance.OnRemoveEnemyObjects(fireball);
             Destroy(fireball);
             Debug.LogWarning("未检测到地面，火球已销毁");
         }
@@ -114,6 +161,7 @@ public class FireballShooter : MonoBehaviour
         {
             groundVFX = Instantiate(groundVFXPrefab, groundHitPoint, Quaternion.identity);
             groundVFX.transform.localScale = Vector3.one * minGroundVFXScale;
+            GameManage.Instance.OnAddEnemyObjects(groundVFX);
         }
         
         // 火球飞行
@@ -142,25 +190,66 @@ public class FireballShooter : MonoBehaviour
                 if (collider.CompareTag("Player"))
                 {
                     Health playerHealth = collider.GetComponent<Health>();
+                    PlayerController playerController = collider.GetComponent<PlayerController>();
+
+                    GameObject aa=null;
+
                     if (playerHealth != null)
                     {
                         playerHealth.TakeDamage(fireballDamage);
                         Debug.Log("火球击中玩家，造成 " + fireballDamage + " 点伤害");
+                        aa = Instantiate(fireHitPlayerVFX,collider.transform.position,Quaternion.identity);
+                        GameManage.Instance.OnAddEnemyObjects(aa);
                     }
                     
+                    // 禁用玩家控制1秒
+                    if (playerController != null)
+                    {
+                        StartCoroutine(DisablePlayerControl(playerController));
+                    }
+
                     // 提前销毁火球
+                    if (groundVFX != null) 
+                    {
+                        GameManage.Instance.OnRemoveEnemyObjects(groundVFX);
+                        Destroy(groundVFX); 
+                    }
+                    if (aa != null)
+                    {
+                        GameManage.Instance.OnRemoveEnemyObjects(aa);
+                        DOVirtual.DelayedCall(1, () => Destroy(aa)); // 延迟关闭
+                    }
+                    GameManage.Instance.OnRemoveEnemyObjects(fireball);
                     Destroy(fireball);
-                    if (groundVFX != null) Destroy(groundVFX);
                     yield break;
                 }
             }
             
             yield return null;
         }
-        
+        GameObject hitGorundVFX = Instantiate(fireHitGroundVFX, groundHitPoint, Quaternion.identity);
         // 火球到达地面，销毁火球和地面效果
+        GameManage.Instance.OnAddEnemyObjects(hitGorundVFX);
+
+
+        GameManage.Instance.OnRemoveEnemyObjects(fireball);
         if (fireball != null) Destroy(fireball);
+
+        GameManage.Instance.OnRemoveEnemyObjects(groundVFX);
         if (groundVFX != null) Destroy(groundVFX);
+        if (hitGorundVFX!=null)
+        {
+            GameManage.Instance.OnRemoveEnemyObjects(hitGorundVFX);
+            DOVirtual.DelayedCall(1, () => Destroy(hitGorundVFX)); // 延迟关闭
+        }
+    }
+    
+    // 禁用玩家控制的协程
+    private IEnumerator DisablePlayerControl(PlayerController playerController)
+    {
+        playerController.SetCanControl(false);
+        yield return new WaitForSeconds(1f);
+        playerController.SetCanControl(true);
     }
     
     private void SetNextFireTime()
@@ -169,7 +258,7 @@ public class FireballShooter : MonoBehaviour
         nextFireTime = Time.time + Random.Range(minFireInterval, maxFireInterval);
     }
     
-    private void OnDrawGizmosSelected()
+    private void OnDrawGizmos()//绘制线条方便调试
     {
         // 绘制发射点
         if (firePoint != null)
